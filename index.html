@@ -37,7 +37,7 @@
   </iframe>
 
 
-  <elevenlabs-convai id="chat-widget" agent-id="yGoz6EftNQNzlMMOJPrT" dynamic-variables='{"user_location" : "unavailable location"}'></elevenlabs-convai>
+  <elevenlabs-convai id="chat-widget" agent-id="yGoz6EftNQNzlMMOJPrT" dynamic-variables='{"user_gps" : "unavailable location", "user_placename" : "unavailable location"}'></elevenlabs-convai>
 
 <script>
   window.addEventListener("load", () => {
@@ -58,13 +58,43 @@
           const lat = position.coords.latitude
           const lon = position.coords.longitude
           const latString = lat.toFixed(6)
-          const lonString = lon.toFixed(6);
-          const locationString = `Latitude: ${latString}, Longitude: ${lonString}`;
-          console.log(locationString);
+          const lonString = lon.toFixed(6)
+          const gpsString = `Latitude: ${latString}, Longitude: ${lonString}`
+          console.log(gpsString);
 
-          // Update the dynamic-variables attribute with the location string
-          const widget = document.getElementById("chat-widget");
-          widget.setAttribute("dynamic-variables", `{"user_location": "${locationString}"}`);
+
+          const accessToken = 'pk.eyJ1IjoibXF3YiIsImEiOiJjbWFvaDF4bDkwN2VnMmpvZml6bnAweHg0In0.tyJgNnhPeFrzmBUglDYrug';
+          const mapboxUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lon},${lat}.json?access_token=${accessToken}`
+          let placeName = ""
+
+
+          
+          fetch(mapboxUrl)
+            .then(response => response.json())
+            .then(data => {
+              if (data.features.length > 0) {
+                placeName = data.features[0].place_name;
+                console.log('Reverse Geocoded Location:', placeName);
+                // Update the dynamic-variables attribute with the GPS coordinates and the reverse geocode placename
+                const widget = document.getElementById("chat-widget");
+                widget.setAttribute("dynamic-variables", `{"user_gps": "${gpsString}", "user_placename": "${placeName}"}`);
+              } else {
+                console.log('No Geocoded Location found');
+                placeName = "unknown location"
+                // Update the dynamic-variables attribute with the GPS coordinates and the reverse geocode placename
+                const widget = document.getElementById("chat-widget");
+                widget.setAttribute("dynamic-variables", `{"user_gps": "${gpsString}", "user_placename": "${placeName}"}`);
+              }
+            })
+            .catch(error => {
+              placeName = "unknown location"
+              console.error('Error fetching reverse geocoding data:', error);
+              // Update the dynamic-variables attribute with the GPS coordinates and the reverse geocode placename 
+              const widget = document.getElementById("chat-widget");
+              widget.setAttribute("dynamic-variables", `{"user_gps": "${gpsString}", "user_placename": "${placeName}"}`);
+            });
+          
+
 
             // Original approach: hack the Google pb string in the embed URL
             const templateSrc = "https://www.google.com/maps/embed?pb=!1m16!1m12!1m3!1d8317.040319096177!2d-122.17374453067367!3d37.427741487833515!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!2m1!1sstanford%20campus%20gates%20building!5e1!3m2!1sen!2sus!4v1746215639547!5m2!1sen!2sus"
@@ -88,7 +118,7 @@
           console.warn("Geolocation error:", error.message);
           // Fallback location if there's an error
           const widget = document.getElementById("chat-widget");
-          widget.setAttribute("dynamic-variables", '{"user_location": "unavailable location"}');
+          widget.setAttribute("dynamic-variables", '{"user_gps": "unavailable location", "user_placename": "unavailable location"}');
           //document.getElementById("map").src = templateSrc;
           document.getElementById("map").src = `https://maps.google.com/maps?q=${stanfordLat},${stanfordLon}&z=${zoom}&output=embed`;
         },
@@ -96,7 +126,7 @@
       );
     } else {
       const widget = document.getElementById("chat-widget");
-      widget.setAttribute("dynamic-variables", '{"user_location": "unavailable location"}');
+      widget.setAttribute("dynamic-variables", '{"user_gps": "unavailable location", "user_placename": "unavailable location"}');
       //document.getElementById("map").src = templateSrc;
       document.getElementById("map").src = `https://maps.google.com/maps?q=${stanfordLat},${stanfordLon}&z=${zoom}&output=embed`;
 
